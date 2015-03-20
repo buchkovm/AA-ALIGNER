@@ -1,0 +1,79 @@
+##General Parameters
+PATH_TO_AAALIGNER_BIN=/PATH/TO/AAALIGNER/BIN	##Path to AAALIGNER_BIN
+
+JAVA_PATH=/PATH/TO/JAVA/java	##Specify path to JAVA if other than PATH location
+PYTHON_PATH=/PATH/TO/PYTHON/python	##Specify path to PYTHON if other than PATH location
+PERL_PATH=/PATH/TO/PERL/perl	##Specify path to PERL if other than PATH location
+
+READ_LENGTH=50
+MISMATCHES=1 
+KMER=CALCULATE	##K-mer size. For most accurate alignment can be specified,but recommended to stay as CALCULATE
+BASESIZE=KMER	##Basesize must be less than or equal to k-mer. Recemmended to stay at KMER size but can be specified.
+
+##Filtering Paramaters
+#FASTQC
+FASTQC_THREADS=1
+FASTQC_OPTIONS= ##Any other fastqc options
+
+#FASTX_TOOLKIT
+TRIM_FIRST_BASE=1	#Specifies first base to keep
+TRIM_LAST_BASE=SEQUENCE_LENGTH	#Specifies last base to keep; SEQUENCE_LENGTH to keep entire sequence
+FASTX_OPTIONS=  ##Any other fastx options
+
+#FASTQ_GROOMER
+GROOMER_PATH=/PATH/TO/GALAXY/galaxy-prod/galaxy-dist/tools/fastq
+GALAXY_LIBRARY_PATH=/PATH/TO/GALAXY/galaxy-prod/galaxy-dist/lib/
+
+#FASTQ_QUALITY_FILTER 
+FASTQ_QUALITY_FILTER_Q=20	#Minimum quality score
+FASTQ_QUALITY_FILTER_P=90	#Minimum percent of reads containing minimu quality score
+FASTQ_QUALITY_OPTIONS=  ##Other other fastq_quality options
+
+##Calculate K-mer
+FORCE_KMER=0	#Allows for k-mer to be less than 10. Not recommended to be turned on.
+
+##Create Reference Genome
+GENOME_DIR=/PATH/TO/GMAPDB/
+GENOME_NAME=genome_name
+SNP_DATABASE_NAME=snp_database
+REF_FASTQ_DIR=/PATH/TO/REFERENCE/FASTQ/DIRECTORY	#Path to directory containing reference fastq files. DIRECTORY MUST ONLY CONTAIN ALL FASTA FILES NEEDED FOR A SINGLE REFERENCE. 
+REF_FASTQ=hg19.fa	#<REF_FASTQ> if there is one reference files. Reference fastq files split by chromosome should be named <CHROM>.fa
+REFERENCE_FILE_COMPRESSED=1	#Indicates whether reference fasta files are compressed with .gz suffix
+HET_FILE=/PATH/TO/HET/FILE	#Path to the bed file containing heterozgous sites
+REPLACE_FILE=/PATH/TO/REPLACE/FILE	#Path to the bed file containing sites where the reference allele will be replaced. 
+SPLIT_BY_CHROM=TRUE	#This indicated that reference fastq files are split by chrom and will split HET_FILE and REPLACE_FILE accordingly
+IIT_STORE_OPTS= #other IIT Store options
+GMAP_BUILD_OPTIONS=     #other GMAP build options
+SNPINDEX_OPTIONS=       #other SNPINDEX options
+
+##GSNAP alignment
+READ_GROUP_LIBRARY=Sequence	#Name of read group library i.e. DNaseHS for DNase-seq reads
+READ_GROUP_PLATFORM=ILLUMINA	#Name of sequencing platform
+READ_GROUP_ID=GroupID	#Name of read groups
+NUMBER_READS_OUTPUT=1	#Number of best hits to output to sam
+INDEL_PENALTY=NOINDELS	#Indel penalty score (to allow indels INDEL_PENALTY must be less than MISMATCHES; option NOINDELS will calculate MISMATCHES+1
+TRIM_MISMATCH_SCORE=0	#Score to use when trimming mismatches at end of reads. 0 turns off trimming and is recommended for shorter reads.
+SAMPLING=1	#Determines base shift for sampling k-mers from the read.Recommended sampling of 1 to check for k-mer starting at every base
+GENOME_UNK_MISMATCH=1	#Determines whether an N in the reference genome counts as a mismatch (1=yes 0=no)
+QUERY_UNK_MISMATCH=1	#Determines whether an N in the sequence read counts as a mismatch (1=yes 0=no)
+GNSAP_THREADS=1	#Number of threads to use. See gsnap for more details
+GSNAP_OPTIONS=  ##Other GSNAP options
+
+
+##Post-alignment filtering
+BLACKLIST_FILE=/PATH/TO/BLACKLIST/blacklist_file.bed
+PATH_TO_PICARD=/PATH/TO/PICARD/TOOLS/
+PICARD_USE_THREADING=TRUE ##Use threading to mark duplicates
+MARK_DUPLICATES_OPTIONS=        ##Other MarkDuplicate_options
+MERGE_BAM_OPTIONS=      ##Other bam merge optionsmy $cur_dir = getcwd;
+
+##Allelic imbalance
+CHRY=FALSE	#Denotes if sample is male (TRUE or FALSE)
+CHRM=FALSE	#Denotes if chrM is included (TRUE or FALSE)
+IMBALANCE_DIR_NAME=Imbalances	#Name of directory where imbalance files are placed within output_directory/chrom_alignments/
+INDEX_BAM=1	#Indicates whether the merged bam file needs to be indexed and split by chromosome (1=yes 0=no)
+PREDICTED_MINIMUM_READ_DEPTH=5	#Indicates the minimum reads/allele  required for imbalance at predicted variants
+KNOWN_MINIMUM_READ_DEPTH=5	#Indicates the minimum reads/allele  required for imbalance at known variants
+HET_MM_ONLY=1	#Only considers reads with a mismatch at sites meeting minimum read depth requirement. 0 allows reads anywhere in the read.
+GSNAP_ALTREAD_THREADS=1	#Number of threads to use to align alternative reads
+IMBALANCE_PVALUE=.01	#Imbalance p-value

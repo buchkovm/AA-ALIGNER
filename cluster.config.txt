@@ -1,0 +1,17 @@
+##Cluster configuration options
+PLATFORM=lsf	#Cluster sumbit platform (i.e. lsf, sge). Currently only lsf is implemented
+QUEUE=	#queue name
+
+##Program specific submit options. Memory, node, and other requirements that are specified in the submission command can be specified here 
+FASTQC_SUBMIT_OPTIONS=	
+FASTX_SUBMIT_OPTIONS=
+FASTQ_QUALITY_SUBMIT_OPTIONS=
+REFERENCE_CREATION_SUBMIT_OPTIONS=
+GMAP_BUILD_SUBMIT_OPTIONS=
+SNPINDEX_SUBMIT_OPTIONS=
+GSNAP_ALIGN_SUBMIT_OPTIONS=-x	##Options for aligning  fastq files with GSNAP
+FILTER_BLACKLIST_SUBMIT_OPTIONS=
+MARKDUPLICATES_SUBMIT_OPTIONS=
+BAM_MERGE_SUBMIT_OPTIONS=
+AIDER_SUBMIT_OPTIONS=
+AIDER_ALIGN_SUBMIT_OPTIONS=-q bigmem	##Options for aligning alternate reads with GSNAP
