@@ -451,8 +451,6 @@ sub findImbalance{
 	if($config_opts{INDEL_PENALTY} eq "NOINDELS"){
 		$config_opts{INDEL_PENALTY}= $config_opts{MISMATCHES} + 1;
 	}
-	my $completeImbalances = "";
-	$completeImbalances = "-completeImbalance" if ($config_opts{COMPLETE_IMBALANCE} == 1);	
 	my @chromosome_files = ();	
 	foreach my $chr (@chrom){
 		if($config_opts{INDEX_BAM}){
@@ -468,7 +466,7 @@ sub findImbalance{
 		
 		##Initial heterozygous site and imbalance detection
 		print STDERR "Detect heterozygous site and initial imbalances....";
-		my $initialHet = "samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH $config_opts{PATH_TO_AAALIGNER_BIN}/detectAllelicImbalance.pl -output $output.initial -minimumCoverage $config_opts{MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches $completeImbalances";
+		my $initialHet = "samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH $config_opts{PATH_TO_AAALIGNER_BIN}/detectAllelicImbalance.pl -output $output.initial -minimumCoverage $config_opts{PREDICTED_MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches -knownMinimumCoverage $opts{KNOWN_MINIMUM_READ_DEPTH}";
 		print "$initialHet\n";
 		$err =`$initialHet`;
 		print STDERR "$err done\n";
@@ -489,7 +487,7 @@ sub findImbalance{
 
 		##Final heterozygous site and imbalance detection
 		print STDERR "Detect heterozygous site and final imbalances....";
-		my $finalHet = "samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH  $config_opts{PATH_TO_AAALIGNER_BIN}/detectAllelicImbalance.pl -output $output.final -minimumCoverage $config_opts{MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches -mappability  $output.initial.aider.$config_opts{MINIMUM_READ_DEPTH}.altReads.mappability.txt $completeImbalances";
+		my $finalHet = "samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH  $config_opts{PATH_TO_AAALIGNER_BIN}/detectAllelicImbalance.pl -output $output.final -minimumCoverage $config_opts{PREDICTED_MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches -mappability  $output.initial.aider.$config_opts{MINIMUM_READ_DEPTH}.altReads.mappability.txt -knownMinimumCoverage $opts{KNOWN_MINIMUM_READ_DEPTH}";
 		print "$finalHet\n";
 		$err =`$finalHet`;
 		print STDERR "$err done\n";

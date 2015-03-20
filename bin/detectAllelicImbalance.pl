@@ -5,15 +5,17 @@
 # Martin Buchkovich
 # January 2015
 ####################################################################
-my %opts=(mismatches=>100);
+my %opts=(mismatches=>100, $opts{knownMinimumCoverage});
 use Math::CDF;
 use Getopt::Long;
-GetOptions(\%opts,qw(alignedHets=s forceMismatches  mismatches=s format=s output=s minimumCoverage=s mappability=s));
+GetOptions(\%opts,qw(alignedHets=s forceMismatches  mismatches=s format=s output=s predictedMinimumCoverage=s mappability=s knownMinimumCoverage=s));
 
 my $min_qual = 30;
 my $mismatch_threshold = $opts{mismatches};
 my $format = $opts{format} || "gsnap";
-my $min_cov = $opts{minimumCoverage} || 5;
+my $min_cov = $opts{predictedMinimumCoverage} || 5;
+my $known_min_cov = $opts{knownMinimumCoverage};
+$known_min_cov = $min_cov if ($known_min_cov eq "");
 my $output = $opts{output} || "scan";
 my $forceMismatches = $opts{forceMismatches} || 0;
 
@@ -35,7 +37,7 @@ if(defined ($opts{mappability})){
 	}
 }
 
-if($forceMismatches){
+if($forceMismatches || $min_cov != $known_min_cov){
 	open(IN, $opts{alignedHets});
 	while(<IN>){
 		chomp;
@@ -101,7 +103,7 @@ while (<>){
 	##The binEnds when there are no more overlapping sequences or a new chromosome
 	if($curChr ne $cols[2] || $cols[3] > $binEnd){
 		##Checks snps in bin to see if they meet qualifications to be a het
-		findBinHets(\%bin_snps, \%bin_hets);	
+		findBinHets(\%bin_snps, \%bin_hets, $curChr);	
 		
 		##If only allowing mismatch at heterozygous sites
 		if($forceMismatches){
@@ -110,7 +112,7 @@ while (<>){
 				push(@reads, $read) if ($keepRead == 1);	
 			}
 			%bin_hets = ();
-			findBinHets(\%bin_snps, \%bin_hets);	
+			findBinHets(\%bin_snps, \%bin_hets, $curChr);	
 		}else{
 			push(@reads, @reads_mm);	
 		}
@@ -145,14 +147,14 @@ while (<>){
 	
 }
 ##Checks snps in bin to see if they meet qualifications to be a het
-findBinHets(\%bin_snps, \%bin_hets);	
+findBinHets(\%bin_snps, \%bin_hets,$curChr);	
 		
 ##If only allowing mismatch at heterozygous sites
 if($forceMismatches){
 	foreach my $read (@reads_mm){
 		my $keepRead = forceMismatchAtHets($read, \%bin_snps);
 		push(@reads, $read) if ($keepRead == 1);	
-		findBinHets(\%bin_snps, \%bin_hets);	
+		findBinHets(\%bin_snps, \%bin_hets,$curChr);	
 	}
 }else{
 	push(@reads, @reads_mm);	
@@ -260,6 +262,7 @@ sub findBinHets{
 	my $bin_snp_ref = shift;
 	my %bin_snp = %{$bin_snp_ref};
 	my $bin_hets_ref=shift;
+	my $chrom = shift;
 	foreach my $pos (sort {$a<=>$b} keys %bin_snp){
 		my %alt = %{$bin_snp{$pos}{alt}};
 		my $alt_cnt =0;
@@ -267,25 +270,79 @@ sub findBinHets{
 		if($pos == $debug_pos){
 			my $tmp =  "";
 		}
-		foreach my $alt_allele (sort {$alt{$b}<=>$alt{$a}} keys %alt){
-			if($bin_snp{$pos}{alt}{$alt_allele} >= $min_cov){
-				$alt_min{$alt_allele}=$bin_snp{$pos}{alt}{$alt_allele};
-				$alt_cnt++;
-				if($bin_snp{$pos}{ref_cnt} >= $min_cov){
-					$bin_hets_ref->{$pos}{alt}{$alt_allele} = $bin_snp{$pos}{alt}{$alt_allele};
-					$bin_hets_ref->{$pos}{ref} = $bin_snp{$pos}{ref};
-					$bin_hets_ref->{$pos}{ref_cnt} = $bin_snp{$pos}{ref_cnt};
-				}elsif($alt_cnt>1){
-					#delete ($bin_homAlts{$pos}) if (exists $bin_homAlts{$pos});
-					foreach my $aname (keys %alt_min){
-						$bin_hets_ref->{$pos}{alt}{$aname}=$alt_min{$aname};
-					} 
-					$bin_hets_ref->{$pos}{ref} = $bin_snp{$pos}{ref};
-					$bin_hets_ref->{$pos}{ref_cnt} = $bin_snp{$pos}{ref_cnt};
-					
-				}	
+		if(exists $align_hets{$chrom}{$pos} && $min_cov != $known_min_cov){
+ 			my @alleles = split //, $align_hets{$chrom}{$pos};
+			my $ref = $bin_snp{$pos}{ref};
+			my $ref_cnt = $bin_snps{$pos}{ref_cnt} || 0;
+			if($ref eq $alleles[0]){
+				my $alt = $alleles[1];
+				my $alt_cnt = $bin_snps{$pos}{alt}{$alleles[1]} || 0;
+				if ($ref_cnt >= $known_min_cov && $alt_cnt >= $known_min_cov &&($alt_cnt > 0 || $ref_cnt>0)){
+					$bin_hets_ref->{$pos}{known} = 1;
+					$bin_hets_ref->{$pos}{ref} = $ref;
+					$bin_hets_ref->{$pos}{ref_cnt} = $ref_cnt;
+					$bin_hets_ref->{$pos}{alt}{$alt} = $alt_cnt;
+				}
+			}elsif($ref eq $alleles[1]){
+				my $alt = $alleles[0];
+				my $alt_cnt = $bin_snps{$pos}{alt}{$alleles[0]} || 0;
+				if ($ref_cnt >= $known_min_cov && $alt_cnt >= $known_min_cov  &&($alt_cnt > 0 || $ref_cnt>0)){
+					$bin_hets_ref->{$pos}{known} = 1;
+					$bin_hets_ref->{$pos}{ref} = $ref;
+					$bin_hets_ref->{$pos}{ref_cnt} = $ref_cnt;
+					$bin_hets_ref->{$pos}{alt}{$alt} = $alt_cnt;
+				}
+			}else{
+				my $alt_match = 0;
+				foreach my $alt_allele (sort {$alt{$b}<=>$alt{$a}} keys %alt){
+					if($alt_allele eq $alleles[0]){
+						my $ref = $alleles[1];
+						my $ref_cnt = $bin_snps{$pos}{ref_cnt} || 0;
+						my $alt_cnt = $bin_snp{$pos}{alt}{$alt_allele} || 0;
+						if($ref_cnt >= $known_min_cov && $alt_cnt >= $known_min_cov  &&($alt_cnt > 0 || $ref_cnt>0)){
+							$bin_hets_ref->{$pos}{known} = 1;
+							$bin_hets_ref->{$pos}{ref}=$ref;
+							$bin_hets_ref->{$pos}{ref_cnt} = $ref_cnt || 0;
+							$bin_hets_ref->{$pos}{alt}{$alt_allele}=$alt_cnt;
+						}	
+						$alt_match=1;	
+					}elsif($alt_allele eq $alleles[1]){
+						my $ref = $alleles[0];
+						my $ref_cnt = $bin_snps{$pos}{ref_cnt} || 0;
+						my $alt_cnt = $bin_snp{$pos}{alt}{$alt_allele} || 0;
+						if($ref_cnt >= $known_min_cov && $alt_cnt >= $known_min_cov  &&($alt_cnt > 0 || $ref_cnt>0)){
+							$bin_hets_ref->{$pos}{known} = 1;
+							$bin_hets_ref->{$pos}{ref}=$ref;
+							$bin_hets_ref->{$pos}{ref_cnt} = $ref_cnt || 0;
+							$bin_hets_ref->{$pos}{alt}{$alt_allele}=$alt_cnt;
+						}	
+						$alt_match=1;
+					}
+				}
+				print STDERR "$chrom\t$pos\t$ref\t$bin_snp{$pos}{ref_cnt}\t$alt\t$bin_snp{$pos}{alt}{$alt}\tRef not matching alleles\n" if ($alt_match == 0);
 			}		
-		}			
+		}else{
+		foreach my $alt_allele (sort {$alt{$b}<=>$alt{$a}} keys %alt){
+				if($bin_snp{$pos}{alt}{$alt_allele} >= $min_cov){ 
+					$alt_min{$alt_allele}=$bin_snp{$pos}{alt}{$alt_allele};
+					$alt_cnt++;
+					if($bin_snp{$pos}{ref_cnt} >= $min_cov){
+						$bin_hets_ref->{$pos}{known} = 0;
+						$bin_hets_ref->{$pos}{alt}{$alt_allele} = $bin_snp{$pos}{alt}{$alt_allele};
+						$bin_hets_ref->{$pos}{ref} = $bin_snp{$pos}{ref};
+						$bin_hets_ref->{$pos}{ref_cnt} = $bin_snp{$pos}{ref_cnt};
+					}elsif($alt_cnt>1){
+						#delete ($bin_homAlts{$pos}) if (exists $bin_homAlts{$pos});
+						foreach my $aname (keys %alt_min){
+							$bin_hets_ref->{$pos}{alt}{$aname}=$alt_min{$aname};
+						} 
+						$bin_hets_ref->{$pos}{known} = 0;
+						$bin_hets_ref->{$pos}{ref} = $bin_snp{$pos}{ref};
+						$bin_hets_ref->{$pos}{ref_cnt} = $bin_snp{$pos}{ref_cnt};	
+					}	
+				}		
+			}			
+		}
 	}
 }
 
@@ -460,12 +517,17 @@ sub printBinHets{
 			$alleles .= " $alt_allele:$alt_hash{$alt_allele}";
 		}		
 		my $pvalue = 1;
-		if ($het_hash{$pos}{ref_cnt} >= $min_cov){
+		if($het_hash{$pos}{known} == 0){	
+			if ($het_hash{$pos}{ref_cnt} >= $min_cov){
+				$pvalue = findPvalue($alt_hash{$keys[0]},$het_hash{$pos}{ref_cnt});
+	        	}elsif($#keys >0){
+				$pvalue = findPvalue($alt_hash{$keys[0]}, $alt_hash{$keys[1]});
+			}
+			print HETOUT "$chrom\t$start\t$pos\t$chrom:$pos\t$alleles\t$het_hash{$pos}{ref}\t$pvalue\tpredicted\n";
+		}else{
 			$pvalue = findPvalue($alt_hash{$keys[0]},$het_hash{$pos}{ref_cnt});
-	        }elsif($#keys >0){
-			$pvalue = findPvalue($alt_hash{$keys[0]}, $alt_hash{$keys[1]});
+			print HETOUT "$chrom\t$start\t$pos\t$chrom:$pos\t$alleles\t$het_hash{$pos}{ref}\t$pvalue\tknown\n";
 		}
-		print HETOUT "$chrom\t$start\t$pos\t$chrom:$pos\t$alleles\t$het_hash{$pos}{ref}\t$pvalue\n";
 	}
 }
 

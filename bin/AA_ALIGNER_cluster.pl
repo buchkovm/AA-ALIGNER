@@ -477,6 +477,8 @@ sub findImbalance{
 	if($config_opts{INDEL_PENALTY} eq "NOINDELS"){
 		$config_opts{INDEL_PENALTY}= $config_opts{MISMATCHES} + 1;
 	}
+	my $completeImbalances = "";
+	$completeImbalances = "-completeImbalance" if ($config_opts{COMPLETE_IMBALANCE} == 1);
 	
 	my @chromosome_files = ();
 	foreach my $chr (@chrom){
@@ -497,7 +499,7 @@ sub findImbalance{
 		##Initial heterozygous site and imbalance detection
 		print STDERR "Detect heterozygous site and initial imbalances....";
 		$submit_command = createSubmitCommand("AIDER_SUBMIT", $opts{out_prefix} . "_initial_imbalance_$chr" ,$previous_chrom_job);
-		my $initialHet = "$submit_command \"samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH $config_opts{PATH_TO_AAALIGNER_BIN}/AIDer.pl -output $output.initial -minimumCoverage $config_opts{MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches\"";
+		my $initialHet = "$submit_command \"samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH $config_opts{PATH_TO_AAALIGNER_BIN}/AIDer.pl -output $output.initial -minimumCoverage $config_opts{MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches $completeImbalances\"";
 		print "$initialHet\n";
 		$err =`$initialHet` if ($RUN == 1);
 		print STDERR "$err done\n";
@@ -521,7 +523,7 @@ sub findImbalance{
 		##Final heterozygous site and imbalance detection
 		print STDERR "Detect heterozygous site and final imbalances....";
 		$submit_command = createSubmitCommand("AIDER_SUBMIT", $opts{out_prefix} . "_final_imbalance_$chr", $opts{out_prefix} . "_mappability_$chr");
-		my $finalHet = "$submit_command \"samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH  $config_opts{PATH_TO_AAALIGNER_BIN}/AIDer.pl -output $output.final -minimumCoverage $config_opts{MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches -mappability  $output.initial.aider.$config_opts{MINIMUM_READ_DEPTH}.altReads.mappability.txt\"";
+		my $finalHet = "$submit_command \"samtools view $opts{out_directory}/chrom_alignments/$opts{out_prefix}_$chr.bam | $PERLPATH  $config_opts{PATH_TO_AAALIGNER_BIN}/AIDer.pl -output $output.final -minimumCoverage $config_opts{MINIMUM_READ_DEPTH}  -mismatches $config_opts{MISMATCHES} -format gsnap -alignedHets $config_opts{HET_FILE} $forceMismatches -mappability  $output.initial.aider.$config_opts{MINIMUM_READ_DEPTH}.altReads.mappability.txt $completeImbalances\"";
 		print "$finalHet\n";
 		$err =`$finalHet` if ($RUN == 1);
 		print STDERR "$err done\n";
